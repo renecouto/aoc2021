@@ -225,6 +225,6 @@ mod tests {
     #[test]
     fn part_2_works_on_input() {
         let result = life_support_rating(read_to_string("input.txt").unwrap().lines().collect());
-        assert_eq!(result, 230);
+        assert_eq!(result, 4481199);
     }
 }
