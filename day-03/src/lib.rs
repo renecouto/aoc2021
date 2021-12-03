@@ -3,6 +3,9 @@
 // The epsilon rate is calculated in a similar way; rather than use the most common bit, the least common bit from each position is used.
 
 // part2 https://adventofcode.com/2021/day/3#part2
+fn sum_by_index_nx(diagnostics: &Vec<Vec<u32>>, n: usize) -> u64 {
+    diagnostics.iter().map(|c| c[n] as u64).sum()
+}
 
 fn sum_by_index(diagnostics: &Vec<&str>) -> Vec<u64> {
     let amount = diagnostics[0].len();
@@ -15,16 +18,6 @@ fn sum_by_index(diagnostics: &Vec<&str>) -> Vec<u64> {
     total_by_index
 }
 
-fn sum_by_index_n(diagnostics: &Vec<Vec<u32>>) -> Vec<u64> {
-    let amount = diagnostics[0].len();
-    let mut total_by_index: Vec<u64> = (0..amount).map(|_| 0).collect();
-    for numbers in diagnostics.iter() {
-        for (i, n) in numbers.iter().enumerate() {
-            total_by_index[i] += *n as u64;
-        }
-    }
-    total_by_index
-}
 
 fn bit_vec_to_number(gamma: &Vec<u64>) -> u64 {
     // gamma.reverse();
@@ -44,74 +37,50 @@ fn to_numbers_unsafe(d: &str) -> Vec<u32> {
 fn life_support_rating(diagnostics: Vec<&str>) -> u64 {
     let total_by_index = sum_by_index(&diagnostics);
 
-    let mut oxygen_filtered: Vec<Vec<u32>> = diagnostics.iter().map(|c| to_numbers_unsafe(c)).collect();
-    let mut co_filtered = oxygen_filtered.clone();
+    let oxygen_filtered: Vec<Vec<u32>> = diagnostics.iter().map(|c| to_numbers_unsafe(c)).collect();
+    let co_filtered = oxygen_filtered.clone();
 
-    for i in 0..total_by_index.len() {
-        let len = oxygen_filtered.len();
-        let most_common_rounded_up: Vec<u32> = sum_by_index_n(&oxygen_filtered).iter().map(|c| {
-            if c*2 >= (len as u64) {
-                1
-            } else {
-                0
+    let fff = |filtered2: Vec<Vec<u32>>, fnx: fn(&u64, usize) -> u32| {
+        let mut filtered = filtered2;
+        for i in 0..total_by_index.len() {
+            let len = filtered.len();
+            let most_common_rounded_up = fnx(&sum_by_index_nx(&filtered, i), len);
+            let mut remaining: Vec<Vec<u32>> = vec![];
+            for f in filtered.into_iter() {
+                if f[i] == most_common_rounded_up {
+                    remaining.push(f);
+                }
             }
-        }).collect();
-        // println!("most common: {:?}", most_common_rounded_up);
-        let mut remaining: Vec<Vec<u32>> = vec![];
-        for f in oxygen_filtered.iter() {
-            if f[i] == most_common_rounded_up[i] {
-                remaining.push(f.clone());
+            if remaining.len() == 1 {
+                filtered = remaining;
+                break;
             }
+            filtered = remaining;
         }
-        if remaining.is_empty() {
-            // println!("ended because of empty");
-            break;
-        }
-        if remaining.len() == 1 {
-            oxygen_filtered = remaining.clone();
-            // println!("ended because of 1 element");
-            break;
-        }
-        oxygen_filtered = remaining.clone();
-        // println!("next remaining: {:?}", &oxygen_filtered);
-    }
+        filtered
 
-    for i in 0..total_by_index.len() {
-        let len = co_filtered.len();
-        let least_common_rounded_down: Vec<u32> = sum_by_index_n(&co_filtered).iter().map(|c| {
-            if c*2 >= (len as u64) {
-                0
-            } else {
-                1
-            }
-        }).collect();
-        // println!("most common rounded down: {:?}", least_common_rounded_down);
-        let mut remaining: Vec<Vec<u32>> = vec![];
-        for f in co_filtered.iter() {
-            if f[i] == least_common_rounded_down[i] {
-                remaining.push(f.clone());
-            }
+    };
 
+    let oxygen_filtered = fff(oxygen_filtered, |c: &u64, len: usize| {
+        if c*2 >= (len as u64){
+            1
+        } else {
+            0
         }
-        if remaining.is_empty() {
-            // println!("ended because of empty");
-            break;
+    });
+
+    let co_filtered = fff(co_filtered, |c: &u64, len: usize| {
+        if c*2 >= (len as u64){
+            0
+        } else {
+            1
         }
-        if remaining.len() == 1 {
-            // println!("ended because of 1 element");
-            co_filtered = remaining.clone();
-            break;
-        }
-        // if done { break; }
-        co_filtered = remaining.clone();
-        // println!("next remaining: {:?}", &oxygen_filtered);
-    }
+    });
+
     let ox_res = bit_vec_to_number(&oxygen_filtered[0].iter().map(|c| *c as u64).collect());
 
     let co_res = bit_vec_to_number(&co_filtered[0].iter().map(|c| *c as u64).collect());
-    // println!("ox is {}, co is {}", ox_res, co_res);
     ox_res * co_res
-    // let oxygen_filtered_res = oxygen_filtered[0];
 }
 
 fn power_consumption(diagnostics: Vec<&str>) -> u64 {
