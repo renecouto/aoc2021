@@ -199,8 +199,7 @@ mod tests {
         let r = from_input(&input);
         let mut gb = r.1;
         let r = play_(r.0, &mut gb);
-        let sum_of_remaining: u64 = (6..26).sum();
-        assert_eq!(r, 5*sum_of_remaining);
+        assert_eq!(r, 2496);
     }
 
     #[test]
