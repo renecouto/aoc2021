@@ -18,21 +18,25 @@ fn part_1(data: DisplayData) -> u64 {
 fn part_2(data: DisplayData) -> u64{
     data.into_iter().map(|l| {
         let combinations = l.0;
-        let number_1 = combinations.iter().find(|x| x.len() == 2).unwrap();
-        let number_1_chars: HashSet<char> = number_1.chars().collect();
-        let number_4 = combinations.iter().find(|x| x.len() == 4).unwrap();
-        let number_4_chars: HashSet<char> = number_4.chars().collect();
-        let number_7 = combinations.iter().find(|x| x.len() == 3).unwrap();
-        let number_7_chars: HashSet<char> = number_7.chars().collect();
+        let mut combinations_by_len: HashMap<usize, Vec<&str>> = HashMap::new();
+         combinations.clone().into_iter().for_each(|x| {
+             match combinations_by_len.get_mut(&x.len()) {
+                 None => {combinations_by_len.insert(x.len(), vec![x]);}
+                 Some(v) => {v.push(x)}
+             };
+
+         });
+        let number_1_chars: HashSet<char> = combinations_by_len.get(&2).unwrap()[0].chars().collect();
+        let number_4_chars: HashSet<char> = combinations_by_len.get(&4).unwrap()[0].chars().collect();
+        let number_7_chars: HashSet<char> = combinations_by_len.get(&3).unwrap()[0].chars().collect();
         // let _top_char = *number_7_chars.difference(&number_1_chars).last().unwrap();
-        let number_8 = combinations.iter().find(|x| x.len() == 7).unwrap();
-        let number_8_chars: HashSet<char> = number_8.chars().collect();
-        let numbers_2_3_or_5: Vec<(&str, HashSet<char>)> = combinations.clone().into_iter().filter(|x| x.len() == 5).map(|z| (z, z.chars().collect())).collect();
+        let number_8_chars: HashSet<char> = combinations_by_len.get(&7).unwrap()[0].chars().collect();
+        let numbers_2_3_or_5: Vec<(&str, HashSet<char>)> = combinations_by_len.remove(&5).unwrap().into_iter().map(|z| (z, z.chars().collect())).collect();
         let number_3 = numbers_2_3_or_5.iter().find(|(st, chars)| chars.difference(&number_1_chars).count() == 3).unwrap();
         let number_2 = numbers_2_3_or_5.iter().find(|(st, chars)| *st != number_3.0 && number_4_chars.difference(chars).count() == 2).unwrap();
         let number_5 = numbers_2_3_or_5.iter().find(|(st, chars)| *st != number_3.0 && number_4_chars.difference(chars).count() == 1).unwrap();
 
-        let numbers_0_6_or_9: Vec<(&str, HashSet<char>)> = combinations.clone().into_iter().filter(|x| x.len() == 6).map(|z| (z, z.chars().collect())).collect();
+        let numbers_0_6_or_9: Vec<(&str, HashSet<char>)> = combinations_by_len.remove(&6).unwrap().into_iter().map(|z| (z, z.chars().collect())).collect();
 
         let number_9 = numbers_0_6_or_9.iter().find(|(st, chars)| number_2.1.difference(chars).count() == 1 && number_3.1.difference(chars).count() == 0).unwrap();
         let number_6 = numbers_0_6_or_9.iter().find(|(st, chars)| number_1_chars.difference(chars).count() == 1).unwrap();
@@ -62,9 +66,6 @@ fn part_2(data: DisplayData) -> u64{
             let parsed = res.get(&pp).unwrap();
             rez += 10_i32.pow(3-(i as u32)) * parsed;
         }
-        // values[0].chars().collect();
-
-        // let number_0 = numbers_0_or_6_or_9.iter().find(|x| x.);
         rez as u64
     }).sum()
 }
