@@ -1,3 +1,4 @@
+use std::cell::Cell;
 use std::collections::HashMap;
 
 fn parse(input: &str) -> Vec<Vec<u32>> {
@@ -29,12 +30,7 @@ fn count_lowest_points(map: Vec<Vec<u32>>) -> u64 {
     total
 }
 
-/*
-    This can be modeled as a union-find problem, but also counting the number of elements in each partition/nodegroup
-
- */
-fn part_2(map: Vec<Vec<u32>>) -> u128 {
-    let mut total = 0;
+fn p2_build_links(map: Vec<Vec<u32>>) -> HashMap<(usize, usize), (usize, usize)> {
     let max_x = map.len() -1;
     let max_y = map[0].len() -1;
     let mut position_map: HashMap<(usize, usize),(usize, usize)> = HashMap::new();
@@ -46,13 +42,10 @@ fn part_2(map: Vec<Vec<u32>>) -> u128 {
 
             } else if i+1 <  max_x && cur > map[i+1][j] {
                 position_map.insert ((i, j),(i+1, j));
-
             } else if i > 0  && cur > map[i -1][j] {
                 position_map.insert ((i, j),(i-1, j));
-                continue
             } else if j > 0  && cur > map[i][j -1] {
                 position_map.insert ((i, j), (i, j-1));
-                continue
             } else if j < max_y  && cur > map[i][j + 1] {
                 position_map.insert ((i, j), (i, j + 1));
             } else {
@@ -60,7 +53,127 @@ fn part_2(map: Vec<Vec<u32>>) -> u128 {
             }
         }
     }
-    /*
+    position_map
+}
+
+// I have no idea why this works and the dont_cache_all doesnt :( also there might be more clones than necessary
+fn union_find_sizes_clone_keys(mut position_map: HashMap<(usize, usize), (usize, usize)>) -> HashMap<(usize, usize), u128> {
+    let mut c = 0;
+    let mut count_by_root: HashMap<(usize, usize), u128> = HashMap::new();
+    position_map.clone().keys().for_each(|k|{
+        let mut root = position_map.get(k).unwrap().clone();
+        loop{
+            c+=1;
+            let new_root = position_map.get(&root).unwrap().clone();
+            if new_root == root {
+                break
+            }
+            root = new_root;
+        }
+        let old_count =  count_by_root.get(&root);
+        let new_count = old_count.unwrap_or(&0) + 1;
+        count_by_root.insert(root, new_count);
+        position_map.insert(*k, root);
+    });
+    print!("{}", c); //20514
+    count_by_root
+}
+
+// FIXME it runs as many iterations as not caching LOL
+fn union_find_sizes_dont_cache_all(mut position_map: HashMap<(usize, usize), (usize, usize)>) -> HashMap<(usize, usize), u128> {
+    let mut c = 0;
+    let mut count_by_root= HashMap::new();
+    for (_k, v) in position_map.clone().iter_mut() {
+        let mut root = v;
+        loop{
+            c+=1;
+            let new_root = position_map.get(root).unwrap().clone();
+            if new_root == *root {
+                break
+            }
+            *root = new_root;
+        }
+        let old_count =  count_by_root.get(root);
+        let new_count = old_count.unwrap_or(&0) + 1;
+        count_by_root.insert(*root, new_count);
+    }
+    println!("{}", c); // 32660
+    count_by_root
+}
+
+fn union_find_sizes_dont_cache_any(mut position_map: HashMap<(usize, usize), (usize, usize)>) -> HashMap<(usize, usize), u128> {
+    let mut count_by_root: HashMap<(usize, usize), u128> = HashMap::new();
+    let mut c = 0;
+    for (_k, v) in position_map.iter() {
+        let mut root = v;
+        loop{
+            c += 1;
+            let new_root = position_map.get(&root).unwrap();
+            if new_root == root {
+                break
+            }
+            root = new_root;
+        }
+        let old_count =  count_by_root.get(&root);
+        let new_count = old_count.unwrap_or(&0) + 1;
+        count_by_root.insert(*root, new_count);
+    }
+    print!("{}", c); //32660
+    count_by_root
+}
+
+fn union_find_sizes_cache(mut position_map: HashMap<(usize, usize), Cell<(usize, usize)>>) -> HashMap<(usize, usize), u128> {
+    let mut count_by_root: HashMap<(usize, usize), u128> = HashMap::new();
+    let mut c = 0;
+    for (_k, v) in position_map.iter() {
+        let mut root = v;
+        loop{
+            c+=1;
+            let new_root = position_map.get(&root.get()).unwrap();
+            if new_root == root {
+                break
+            }
+            root.set(new_root.get());
+        }
+        let old_count =  count_by_root.get(&root.get());
+        let new_count = old_count.unwrap_or(&0) + 1;
+        count_by_root.insert(root.get(), new_count);
+    }
+    println!("{}", c); //20305
+    count_by_root
+}
+
+// shorten the path of each parent to the root as we mutate. less iterations, more internal mutability
+fn union_find_sizes_cache_common_descendants(mut position_map: HashMap<(usize, usize), Cell<(usize, usize)>>) -> HashMap<(usize, usize), u128> {
+    let mut count_by_root: HashMap<(usize, usize), u128> = HashMap::new();
+    let mut c = 0;
+    for (_k, v) in position_map.iter() {
+        let mut root = v;
+        let mut to_alter = vec![];
+        loop{
+            c+=1;
+            let new_root = position_map.get(&root.get()).unwrap();
+            if new_root == root {
+                break
+            } else {
+                to_alter.push(new_root.get());
+            }
+            root.set(new_root.get());
+        }
+        to_alter.into_iter().for_each(|r| {
+           position_map.get(&r).unwrap().set(root.get());
+        });
+        let old_count =  count_by_root.get(&root.get());
+        let new_count = old_count.unwrap_or(&0) + 1;
+        count_by_root.insert(root.get(), new_count);
+    }
+    println!("{}", c); // 15913
+    count_by_root
+}
+
+/*
+    This can be modeled as a union-find problem, but also counting the number of elements in each partition/nodegroup
+
     position_map is now a hashmap of node -> parent node. we want to count the members of each tree, so...
     get a node, get all of its children
     n2 -> n1
@@ -78,28 +191,16 @@ fn part_2(map: Vec<Vec<u32>>) -> u128 {
     n3 -> n1
     count[n1] += 1
      */
-    let mut count_by_root: HashMap<(usize, usize), u128> = HashMap::new();
 
-    // we can optimize by not cloning, but taking v as a RefCell, so we can lookup shortened paths
-    for (_k, v) in position_map.clone().iter_mut() {
-        let mut root = v;
-        loop{
-
-            let new_root = position_map.get(root).unwrap().clone();
-            if new_root == *root {
-                break
-            }
-            *root = new_root;
-        }
-        let old_count =  count_by_root.get(root);
-        let new_count = old_count.unwrap_or(&0) + 1;
-        count_by_root.insert(*root, new_count);
-
-    }
+fn part_2(map: Vec<Vec<u32>>) -> u128 {
+    let mut total = 0;
+    let mut position_map = p2_build_links(map);
+    // let mut count_by_root = union_find_sizes_cache(position_map.into_iter().map(|(k,v)| (k, Cell::new(v))).collect());
+    let mut count_by_root = union_find_sizes_cache_common_descendants(position_map.into_iter().map(|(k,v)| (k, Cell::new(v))).collect());
+    // let mut count_by_root = union_find_sizes_clone_keys(position_map);
     let mut xxx = count_by_root.into_values().collect::<Vec<u128>>();
     xxx.sort();
-    total = xxx.iter().rev().take(3).product();
-    total
+    xxx.iter().rev().take(3).product()
 }
 
 #[cfg(test)]
