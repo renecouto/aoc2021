@@ -26,11 +26,14 @@ mod tests {
         assert_eq!(part_2(parse(input)), expected);
     }
 
+    const EXAMPLE: &str = r#"
+    "#;
+
     #[test]
     fn part_1_on_example() {
         test_part_1(
-            r#""#,
-            todo!()
+            EXAMPLE,
+            Part1Output::default()
         );
     }
 
@@ -38,15 +41,15 @@ mod tests {
     fn part_1_on_input() {
         test_part_1(
             &read_to_string("input.txt").unwrap(),
-            todo!()
+            Part1Output::default()
         );
     }
 
     #[test]
     fn part_2_on_example() {
         test_part_2(
-            r#""#,
-            todo!()
+            EXAMPLE,
+            Part2Output::default()
         );
     }
 
@@ -54,7 +57,7 @@ mod tests {
     fn part_2_on_input() {
         test_part_2(
             &read_to_string("input.txt").unwrap(),
-            todo!()
+            Part2Output::default()
         );
     }
 }
